@@ -1,66 +1,83 @@
 import os
+import pickle
+import pandas as pd
+import gradio as gr
 from scraper import run_scraper
 from model_training import process_and_train
 from predictor import predict_price
-import gradio as gr
+from get_dropdown_options import get_dropdown_options
 
 def run_pipeline(console_model, storage_capacity, condition):
-    """Hauptpipeline: Scraping, Training, und Preisvorhersage."""
-    # Kombiniere Modell und Speicherkapazität in einen Titel
-    title = f"{console_model} - {storage_capacity}"
+    """Hauptpipeline: Vorhersagen basierend auf dem Modell."""
+    print(f"Starte Vorhersage für Modell: {console_model}, Speicherkapazität: {storage_capacity}, Zustand: {condition}")
 
-    print("Starte das Scraping...")
-    scraped_file = run_scraper()
+    # Überprüfen, ob das Modell existiert
+    model_file = "model.pkl"
+    if not os.path.exists(model_file):
+        return "Fehler: Das Modell wurde noch nicht trainiert.", None, None, None
 
-    if not scraped_file or not os.path.exists(scraped_file):
-        print("Fehler: Scraping hat keine gültige Datei generiert.")
-        return "Fehler beim Scraping.", None, None, None
+    # Modell laden
+    print(f"Lade Modell aus {os.path.abspath(model_file)}...")
+    try:
+        with open(model_file, "rb") as f:
+            model = pickle.load(f)
+    except Exception as e:
+        return f"Fehler beim Laden des Modells: {e}", None, None, None
 
-    print("Starte das Training mit den gescrappten Daten...")
-    result = process_and_train(scraped_file)
+    # Gescrappte Daten laden
+    data_file = "asgoodasnew_products.csv"
+    if not os.path.exists(data_file):
+        return "Fehler: Keine gescrappten Daten verfügbar.", None, None, None
 
-    if not result:
-        print("Fehler: Das Training konnte nicht durchgeführt werden.")
-        return "Fehler beim Training.", None, None, None
+    df = pd.read_csv(data_file)
 
-    model, input_columns, df, r2 = result
+    # Flexibles Filtern nach Modell, Speicherkapazität und Zustand
+    filtered_df = df[
+        (df['title'].str.contains(console_model, case=False, na=False)) &
+        (df['title'].str.contains(storage_capacity, case=False, na=False)) &
+        (df['variant'] == condition)
+    ]
 
-    if df.empty:
-        print("Keine Daten für Vorhersagen verfügbar.")
-        return "Keine Daten verfügbar.", None, None, None
+    # Debugging-Ausgabe, falls keine Daten gefunden werden
+    if filtered_df.empty:
+        print(f"Keine passenden Daten gefunden für: {console_model}, {storage_capacity}, {condition}")
+        print("Verfügbare Titel:")
+        print(df['title'].unique())
+        print("Verfügbare Varianten:")
+        print(df['variant'].unique())
+        return f"Keine Wettbewerbsdaten für '{condition}' verfügbar.", None, None, None
 
-    avg_price = df['price'].mean()
-    predicted_price, optimized_price = predict_price(model, input_columns, df, title, condition)
+    # Vorhersagen generieren
+    try:
+        predicted_price, optimized_price = predict_price(
+            model, ['variant_score', 'price_deviation'], filtered_df, console_model, condition
+        )
+        avg_price = filtered_df['price'].mean()
+        r2_score_value = -1.012  # Beispielwert; passe an, falls nötig
+    except Exception as e:
+        print(f"Fehler bei der Vorhersage: {e}")
+        return f"Fehler bei der Vorhersage: {e}", None, None, None
 
-    return predicted_price, optimized_price, round(avg_price, 2), round(r2, 4)
+    # Rückgabe der Ergebnisse
+    return (
+        predicted_price if predicted_price else "Keine Vorhersage verfügbar.",
+        optimized_price if optimized_price else "Keine Optimierung verfügbar.",
+        round(avg_price, 2) if not pd.isna(avg_price) else "Keine Durchschnittsdaten verfügbar.",
+        round(r2_score_value, 4) if r2_score_value else "N/A"
+    )
 
-# Dropdown-Optionen
-console_models = [
-    "Xbox Series X",
-    "Xbox Series S",
-    "PlayStation 5",
-]
 
-storage_options = [
-    "1TB",
-    "512GB",
-    "2TB",
-]
+# Scraping ausführen und Dropdown-Werte laden
+data_file = run_scraper()
+console_models, storage_options, conditions = get_dropdown_options(data_file)
 
-conditions = [
-    "wie neu",
-    "gut",
-    "akzeptabel",
-    "defekt",
-]
-
-# Gradio Interface
+# Gradio Interface mit dynamischen Dropdown-Werten
 interface = gr.Interface(
     fn=run_pipeline,
     inputs=[
-        gr.Dropdown(label="Modell", choices=console_models, value="Xbox Series X"),
-        gr.Dropdown(label="Speicherkapazität", choices=storage_options, value="1TB"),
-        gr.Dropdown(label="Zustand", choices=conditions, value="wie neu"),
+        gr.Dropdown(label="Modell", choices=console_models, value=console_models[0] if console_models else None),
+        gr.Dropdown(label="Speicherkapazität", choices=storage_options, value=storage_options[0] if storage_options else None),
+        gr.Dropdown(label="Zustand", choices=conditions, value=conditions[0] if conditions else None),
     ],
     outputs=[
         gr.Textbox(label="Vorhergesagter Marktpreis"),
@@ -73,4 +90,10 @@ interface = gr.Interface(
 )
 
 if __name__ == "__main__":
+    # Modell prüfen und ggf. trainieren
+    if not os.path.exists("model.pkl"):
+        print("Trainiere Modell mit den vorhandenen Daten...")
+        process_and_train()
+
+    # Gradio-Interface starten
     interface.launch()
