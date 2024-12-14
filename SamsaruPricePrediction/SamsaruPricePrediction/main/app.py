@@ -4,8 +4,11 @@ from model_training import process_and_train
 from predictor import predict_price
 import gradio as gr
 
-def run_pipeline(title, variant):
+def run_pipeline(console_model, storage_capacity, condition):
     """Hauptpipeline: Scraping, Training, und Preisvorhersage."""
+    # Kombiniere Modell und Speicherkapazität in einen Titel
+    title = f"{console_model} - {storage_capacity}"
+
     print("Starte das Scraping...")
     scraped_file = run_scraper()
 
@@ -27,25 +30,46 @@ def run_pipeline(title, variant):
         return "Keine Daten verfügbar.", None, None, None
 
     avg_price = df['price'].mean()
-    predicted_price, optimized_price = predict_price(model, input_columns, df, title, variant)
+    predicted_price, optimized_price = predict_price(model, input_columns, df, title, condition)
 
     return predicted_price, optimized_price, round(avg_price, 2), round(r2, 4)
+
+# Dropdown-Optionen
+console_models = [
+    "Xbox Series X",
+    "Xbox Series S",
+    "PlayStation 5",
+]
+
+storage_options = [
+    "1TB",
+    "512GB",
+    "2TB",
+]
+
+conditions = [
+    "wie neu",
+    "gut",
+    "akzeptabel",
+    "defekt",
+]
 
 # Gradio Interface
 interface = gr.Interface(
     fn=run_pipeline,
     inputs=[
-        gr.Textbox(label="Titel der Konsole (z. B. Xbox Series X - 1TB schwarz)"),
-        gr.Textbox(label="Zustand (z. B. wie neu, gut)")
+        gr.Dropdown(label="Modell", choices=console_models, value="Xbox Series X"),
+        gr.Dropdown(label="Speicherkapazität", choices=storage_options, value="1TB"),
+        gr.Dropdown(label="Zustand", choices=conditions, value="wie neu"),
     ],
     outputs=[
         gr.Textbox(label="Vorhergesagter Marktpreis"),
         gr.Textbox(label="Optimierter Verkaufspreis"),
         gr.Textbox(label="Durchschnittspreis aller Konsolen"),
-        gr.Textbox(label="Modell R^2-Wert")
+        gr.Textbox(label="Modell R^2-Wert"),
     ],
-    title="Xbox-Konsolen-Preisoptimierer",
-    description="Geben Sie den Konsolentitel und den Zustand ein, um Markt- und Verkaufspreise zu erhalten."
+    title="Konsolen-Preisoptimierer",
+    description="Wählen Sie die Konsolenreihe, Speicherkapazität und den Zustand aus, um Markt- und Verkaufspreise zu erhalten.",
 )
 
 if __name__ == "__main__":
