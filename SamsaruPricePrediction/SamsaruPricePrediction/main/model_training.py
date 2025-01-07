@@ -3,12 +3,11 @@ import pickle
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
-from xgboost import XGBRegressor
+from sklearn.linear_model import LinearRegression
 
-def process_and_train(data_file="asgoodasnew_products.csv", model_file="model.pkl"):
+def process_and_train(data_file="asgoodasnew_products.csv", model_file="linear_model.pkl"):
     print(f"Lade Daten aus {data_file}...")
     
-    # Überprüfen, ob die Datei existiert
     if not os.path.exists(data_file):
         print(f"Fehler: Die Datei {data_file} existiert nicht.")
         return None
@@ -19,7 +18,6 @@ def process_and_train(data_file="asgoodasnew_products.csv", model_file="model.pk
         print(f"Fehler beim Laden der Datei: {e}")
         return None
 
-    # Preis konvertieren und fehlende Daten entfernen
     df['price'] = pd.to_numeric(df['price'], errors='coerce')
     df.dropna(subset=['price'], inplace=True)
 
@@ -27,7 +25,6 @@ def process_and_train(data_file="asgoodasnew_products.csv", model_file="model.pk
         print("Fehler: Die Daten sind leer!")
         return None
 
-    # Zusätzliche Features berechnen
     df['variant_score'] = df['variant'].map({'neu': 1, 'wie neu': 0.8, 'sehr gut': 0.6, 'gut': 0.4})
     df['avg_price_by_title'] = df.groupby('title')['price'].transform('mean')
     df['price_deviation'] = df['price'] - df['avg_price_by_title']
@@ -36,10 +33,8 @@ def process_and_train(data_file="asgoodasnew_products.csv", model_file="model.pk
     X = df[features]
     y = df['price']
 
-    # Daten splitten
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Modell laden oder neues Modell erstellen
     if os.path.exists(model_file):
         print(f"Lade vorhandenes Modell aus {model_file}...")
         try:
@@ -48,31 +43,24 @@ def process_and_train(data_file="asgoodasnew_products.csv", model_file="model.pk
         except Exception as e:
             print(f"Fehler beim Laden des Modells: {e}")
             print("Erstelle neues Modell...")
-            model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42)
+            model = LinearRegression()
     else:
         print("Erstelle neues Modell...")
-        model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42)
+        model = LinearRegression()
 
-    # Modelltraining
     print("Starte Modelltraining...")
     model.fit(X_train, y_train)
 
-    # Modellbewertung
     y_pred = model.predict(X_test)
     r2 = r2_score(y_test, y_pred)
     print(f"Training abgeschlossen! R^2: {r2}")
 
-    # Modell speichern
     try:
         with open(model_file, 'wb') as f:
-            pickle.dump(model, f)
+            pickle.dump({"model": model, "features": features, "r2": r2}, f)
         print(f"Modell erfolgreich in {os.path.abspath(model_file)} gespeichert.")
     except Exception as e:
         print(f"Fehler beim Speichern des Modells: {e}")
         return None
-    
-    
-    print(f"Modell erfolgreich in {os.path.abspath(model_file)} gespeichert.")
-
 
     return model, features, df, r2

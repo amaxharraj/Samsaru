@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-def generate_synthetic_data(num_samples=500):
+def generate_synthetic_data(num_samples=1000):
+    """Generiert synthetische Daten für Konsolen."""
     variants = ['neu', 'wie neu', 'sehr gut', 'gut']
     titles = [
         'Microsoft Xbox Series X - 1TB schwarz',
@@ -34,6 +35,3 @@ def generate_synthetic_data(num_samples=500):
         })
 
     return pd.DataFrame(synthetic_data)
-
-synthetic_data = generate_synthetic_data(50)
-synthetic_data.to_csv('synthetic_data.csv', index=False)
