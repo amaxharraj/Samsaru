@@ -47,7 +47,7 @@ def process_and_train(data_file="asgoodasnew_products.csv", model_file="linear_m
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Lineare Regression mit Regularisierung (Ridge)
+    # Ridge Regression Modell mit Kreuzvalidierung
     print("Starte Modelltraining mit Ridge Regression...")
     model = Ridge(alpha=1.0)  # alpha ist der Regularisierungsparameter
     model.fit(X_train_scaled, y_train)
