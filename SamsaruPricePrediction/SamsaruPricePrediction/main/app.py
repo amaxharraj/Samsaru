@@ -90,7 +90,7 @@ if __name__ == "__main__":
         submit_button.click(
             fn=run_pipeline,
             inputs=[model_input, storage_input, condition_input],
-            outputs=[predicted_price, optimized_price, avg_price]
+            outputs=[predicted_price, optimized_price,]
         )
     
     interface.launch()
