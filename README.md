@@ -32,10 +32,10 @@ pip install gradio scikit-learn pandas
 ## 3. Start Application
 
 ### Step 1: Start the Scraping Process
-The first step is to start the scraping process by running the `app.py` file. Once you run the file, the scraping process will start, and a CSV file containing the data will be generated.
+The first step is to start the scraping process by running the `app.py` file, that is located inside the project files ("SamsaruPricePrediction\SamsaruPricePrediction\main\app.py"). Once you run the file, the scraping process will start, and a CSV file containing the data will be generated.
 
 ### Step 2: Run the Notebook
-After the CSV file is generated, you can run the notebook. However, before running the notebook, you need to specify the path where the CSV file is saved.
+After the CSV file is generated, you can run the notebook, that is located inside the main folder ("SamsaruPricePrediction\SamsaruPricePrediction\main\xbox_data_linear_regression.ipynb"). However, before running the notebook, you need to specify the path where the CSV file is saved (e.g. C:\Users\auron\Documents\CodeProjekte\asgoodasnew_products.csv).
 
 1. **Copy the path** of the CSV file.
 2. **Insert the path into the `data_file` variable** in the first cell of the notebook.
@@ -50,7 +50,7 @@ Once the path is set, you can run the notebook by selecting "Run All" (or any ot
 At the bottom of the notebook, you will see the Gradio interface, where you can choose the model of your choice.
 
 **Important:**  
-Make sure you first select a model or change the current one. After that, you can choose the storage capacity and the condition of the console.
+Make sure you first select a model or change the current one. After that, you can choose the storage capacity and the condition of the console, otherwise the dropdown menu will not work in the beginning.
 
 Once selected, the notebook will display:
 
